@@ -7,10 +7,23 @@ edition = "2024"
 
 axum = "0.7"
 tokio = { version = "1.37", features = ["full"] }
-tower-http = { version = "0.5", features = ["fs", "trace", "auth", "compression-br", "cors", "limit"] }
+tower-http = { version = "0.5", features = [
+    "fs",
+    "trace",
+    "auth",
+    "compression-br",
+    "cors",
+    "limit",
+] }
 
 # Database (PostgreSQL) and Compile-Time Security (A03)
-sqlx = { version = "0.7", features = ["runtime-tokio", "macros", "postgres", "uuid", "time"] }
+sqlx = { version = "0.7", features = [
+    "runtime-tokio",
+    "macros",
+    "postgres",
+    "uuid",
+    "time",
+] }
 dotenvy = "0.15" # To load environment variables
 
 # Logging (A09)
@@ -19,3 +32,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Templating (A08)
 askama = "0.12"
+thiserror = "2.0.17"
+rand = "0.9.2"
+uuid = { version = "1.18.1", features = ["v4"] }
+chrono = "0.4.42"
