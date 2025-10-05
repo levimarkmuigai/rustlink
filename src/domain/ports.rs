@@ -1,10 +1,22 @@
-use crate::domain::errors::LinkError;
+use axum::async_trait;
 use uuid::Uuid;
 
-use super::link::Link;
+use crate::domain::link::Link;
 
-pub trait Port {
-    fn find_by_id(&self, id: Uuid) -> Result<Link, LinkError>;
-    fn save(&self, link: &Link) -> ();
-    fn delete() -> ();
+pub type RepositoryError = Box<dyn std::error::Error + Send + Sync>;
+
+#[async_trait]
+pub trait LinkRepository: Send + Sync {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Link>, RepositoryError>;
+
+    async fn find_link_by_code(&self, short_code: &str) -> Result<Option<Link>, RepositoryError>;
+
+    async fn insert_link(
+        &self,
+        long_url: String,
+        short_code: String,
+        delete_key_harsh: String,
+    ) -> Result<Option<Link>, RepositoryError>;
+
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError>;
 }

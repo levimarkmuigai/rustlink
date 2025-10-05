@@ -10,10 +10,16 @@ pub struct Link {
     long_url: String,
     short_code: String,
     created_at: DateTime<Utc>,
+    // Cryptographic Failures (A02)
+    delete_key_hash: String,
 }
 
 impl Link {
-    pub fn new(long_url: String, short_code: String) -> Result<Self, LinkError> {
+    pub fn new(
+        long_url: String,
+        short_code: String,
+        delete_key_hash: String,
+    ) -> Result<Self, LinkError> {
         // Input Validation (A08)
         if long_url.trim().is_empty() {
             return Err(LinkError::EmptyLongUrl);
@@ -23,15 +29,20 @@ impl Link {
             return Err(LinkError::EmptyShortCode);
         }
 
+        if delete_key_hash.trim().is_empty() {
+            return Err(LinkError::EmptyDeleteKeyHash);
+        }
+
         let now = Utc::now();
 
         Ok(Self {
             // Non-guessable ID (A01)
             id: Uuid::new_v4(),
-
             long_url,
             short_code,
             created_at: now,
+            // (A02)
+            delete_key_hash,
         })
     }
 
@@ -65,5 +76,9 @@ impl Link {
 
     pub fn created_at(&self) -> DateTime<Utc> {
         self.created_at
+    }
+
+    pub fn delete_key_hash(&self) -> &str {
+        &self.delete_key_hash
     }
 }
