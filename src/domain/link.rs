@@ -116,7 +116,6 @@ impl TryFrom<String> for ShortUrl {
         Ok(Self(item))
     }
 }
-
 #[derive(Debug, PartialEq, Clone)]
 pub struct UserUrl {
     raw: String,
@@ -142,13 +141,30 @@ impl TryFrom<String> for UserUrl {
         Ok(Self { raw })
     }
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CreatedAt(DateTime<Utc>);
+
+impl CreatedAt {
+    pub fn value() -> DateTime<Utc> {
+        let created_at = Utc::now();
+
+        return created_at;
+    }
+}
+
+impl From<DateTime<Utc>> for CreatedAt {
+    fn from(value: DateTime<Utc>) -> Self {
+        CreatedAt(value)
+    }
+}
 #[derive(Debug, Clone, PartialEq)]
 pub struct Link {
     id: LinkId,
     code: LinkHashedCode,
     short_url: ShortUrl,
     user_url: UserUrl,
-    created_at: DateTime<Utc>,
+    created_at: CreatedAt,
 }
 
 impl Link {
@@ -163,7 +179,7 @@ impl Link {
         let hash_code = LinkHashedCode::try_from(code)?;
         let generated_url = ShortUrl::try_from(short_url)?;
         let input_url = UserUrl::try_from(user_url)?;
-        let creation_time = Utc::now();
+        let creation_time = CreatedAt::from(created_at);
         Ok(Self {
             id: link_id,
             code: hash_code,
@@ -189,7 +205,7 @@ impl Link {
         &self.user_url
     }
 
-    pub fn created_at(self) -> DateTime<Utc> {
+    pub fn created_at(self) -> CreatedAt {
         self.created_at
     }
 }
