@@ -8,8 +8,8 @@ impl <P: LinkPersistence> LinkPersistenceService<P> {
 
     pub fn new(persistence: P) -> Self { Self { persistence }}
 
-    pub fn save(&self, id: LinkId) -> Result<LinkId, LinkError> {
-        self.persistence.save(id)
+    pub fn save(&self, link: Link) -> Result<Link, LinkError> {
+        self.persistence.save(link)
     }
 
     pub fn delete_by_id(&self, id: LinkId) -> Result<Option<Link>, LinkError> {

@@ -6,7 +6,7 @@ use crate::domain::{
 pub trait LinkPersistence {
     fn delete_by_id(&self, id: LinkId) -> Result<Option<Link>, LinkError>;
 
-    fn save(&self, id: LinkId) -> Result<LinkId, LinkError>;
+    fn save(&self, link: Link) -> Result<Link, LinkError>;
 }
 
 pub trait LinkQuery {

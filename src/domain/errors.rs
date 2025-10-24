@@ -15,5 +15,5 @@ pub enum LinkError {
     EmptyURL,
 
     #[error("Persistence error: {0}")]
-    PersistneceError(String),
+    PersistenceError(String),
 }
