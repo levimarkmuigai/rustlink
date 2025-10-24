@@ -13,4 +13,7 @@ pub enum LinkError {
 
     #[error("User url is empty")]
     EmptyURL,
+
+    #[error("Persistence error: {0}")]
+    PersistneceError(String),
 }

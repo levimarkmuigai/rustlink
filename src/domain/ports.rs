@@ -4,9 +4,9 @@ use crate::domain::{
 };
 
 pub trait LinkPersistence {
-    fn delete_by_id(&mut self, id: LinkId) -> Result<Option<Link>, LinkError>;
+    fn delete_by_id(&self, id: LinkId) -> Result<Option<Link>, LinkError>;
 
-    fn save(&mut self, link: Link) -> Result<Link, LinkError>;
+    fn save(&self, id: LinkId) -> Result<LinkId, LinkError>;
 }
 
 pub trait LinkQuery {
