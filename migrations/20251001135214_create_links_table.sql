@@ -1,5 +1,5 @@
--- Add migration script here
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 CREATE TABLE links (
     -- Change BIGSERIAL to UUID and use a generation function
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

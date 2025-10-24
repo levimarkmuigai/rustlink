@@ -138,7 +138,7 @@ impl TryFrom<String> for UserUrl {
 
         let raw = raw_trimmed.to_string();
 
-        Ok(Self { raw })
+        Ok(Self { raw: raw })
     }
 }
 
