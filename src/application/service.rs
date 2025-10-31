@@ -1,16 +1,16 @@
-use crate::domain::{errors::LinkError, link::{Link, LinkId}};
+use crate::domain::{
+    errors::LinkError,
+    link::{Link, LinkId},
+};
 
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct LinkService;
 
 impl LinkService {
-
-    pub fn create_link() -> Result<Link, LinkError> {
-
+    pub fn create() -> Result<Link, LinkError> {
         let link_id = LinkId::value();
-
-        
 
         Ok(())
     }
 }
+
