@@ -4,8 +4,8 @@ pub struct Url {
 }
 
 impl Url {
-
-    pub fn new(input: String) -> Result<Url, String> {
+    pub fn new() -> Result<Url, String> {
+        let input: String = Default::default();
 
         let input_trim = input.trim();
 
@@ -13,13 +13,12 @@ impl Url {
             return Err("Empty input".to_string());
         }
 
-        let raw =input_trim.to_string();
+        let raw = input_trim.to_string();
 
-        Ok(Self{ raw: raw})
+        Ok(Self { raw: raw })
     }
 
-    pub fn as_str(&self) -> &str {
-        &self.raw
+    pub fn as_str(self) -> String {
+        self.raw
     }
-
 }

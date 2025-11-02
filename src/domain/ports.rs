@@ -3,7 +3,8 @@ use crate::domain::{
     link::{Link, LinkId},
 };
 
-pub trait LinkPersistence {
+#[async_trait::async_trait]
+pub trait LinkPersistence: Send + Sync {
     fn delete_by_id(&self, id: LinkId) -> Result<Option<Link>, LinkError>;
 
     fn save(&self, link: Link) -> Result<Link, LinkError>;

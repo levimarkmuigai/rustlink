@@ -1,30 +1,34 @@
+use crate::domain::errors::LinkError;
+use argon2::password_hash::{PasswordHash, SaltString};
+use argon2::{Argon2, PasswordHasher};
 use chrono::{DateTime, Utc};
-use rand::Rng;
+use rand::{rngs::OsRng, Rng};
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-use crate::domain::errors::LinkError;
+impl From<String> for LinkError {
+    fn from(_: String) -> Self {
+        LinkError::CodeGenerationFailure
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct LinkId(Uuid);
 
 impl LinkId {
     pub fn value() -> Uuid {
-        let raw_id = Uuid::new_v4();
-
-        return raw_id;
+        Uuid::new_v4()
     }
 
     pub fn from_string(raw: Uuid) -> Result<String, LinkError> {
         let raw_string = raw.to_string();
-
         let raw_string_trimmed = raw_string.trim();
 
         if raw_string_trimmed.is_empty() {
             return Err(LinkError::LinkIdNotFound);
         }
 
-        let id_string = raw_string_trimmed.to_string();
-
-        Ok(id_string)
+        Ok(raw_string_trimmed.to_string())
     }
 }
 
@@ -36,20 +40,29 @@ impl From<Uuid> for LinkId {
 
 // OWASP A01
 #[derive(Debug, Clone, PartialEq)]
-pub struct LinkHashedCode {
-    code: String,
-}
+pub struct LinkHashedCode(String);
+
 impl LinkHashedCode {
-    pub fn value(raw: String) -> Result<Self, LinkError> {
-        let trimmed_raw: &str = raw.trim();
+    pub fn value() -> Result<String, LinkError> {
+        let mut rng = OsRng;
+        let value: u64 = rng.gen();
+        let mut sha256 = Sha256::new();
 
-        if trimmed_raw.is_empty() {
-            return Err(LinkError::EmptyHashedCode);
-        }
+        sha256.update(value.to_string().as_bytes());
+        let result = sha256.finalize();
+        let hexed_result = hex::encode(result);
 
-        let hash_code = trimmed_raw.to_string();
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
 
-        Ok(Self { code: hash_code })
+        let salted_hex_result = argon2
+            .hash_password(hexed_result.as_bytes(), &salt)
+            .unwrap()
+            .to_string();
+
+        let hashed_code_result = PasswordHash::new(&salted_hex_result).unwrap().to_string();
+
+        Ok(hashed_code_result)
     }
 }
 
@@ -63,9 +76,7 @@ impl TryFrom<String> for LinkHashedCode {
             return Err("Short url is empty.");
         }
 
-        let item = value_trimmed.to_string();
-
-        Ok(Self { code: item })
+        Ok(Self(value_trimmed.to_string()))
     }
 }
 
@@ -75,16 +86,14 @@ pub struct ShortUrl(String);
 impl ShortUrl {
     pub fn value() -> Result<Self, LinkError> {
         let content_length: i32 = 7;
-
-        let mut rng = rand::rng();
+        let mut rng = OsRng;
 
         let character_pick = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
         let char_pool: Vec<char> = character_pick.chars().collect();
 
         let char_merged: String = (0..content_length)
             .map(|_| {
-                let idx = rng.random_range(0..char_pool.len());
+                let idx = rng.gen_range(0..char_pool.len());
                 char_pool[idx]
             })
             .collect();
@@ -95,9 +104,11 @@ impl ShortUrl {
             return Err(LinkError::CodeGenerationFailure);
         }
 
-        let short_url: String = char_merged_trim.to_string();
+        Ok(Self(char_merged_trim.to_string()))
+    }
 
-        Ok(Self(short_url))
+    pub fn into_inner(self) -> String {
+        self.0
     }
 }
 
@@ -111,11 +122,10 @@ impl TryFrom<String> for ShortUrl {
             return Err("Short url is empty.");
         }
 
-        let item = value_trimmed.to_string();
-
-        Ok(Self(item))
+        Ok(Self(value_trimmed.to_string()))
     }
 }
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct UserUrl {
     raw: String,
@@ -129,6 +139,7 @@ impl UserUrl {
 
 impl TryFrom<String> for UserUrl {
     type Error = &'static str;
+
     fn try_from(raw: String) -> Result<Self, Self::Error> {
         let raw_trimmed = raw.trim();
 
@@ -136,9 +147,9 @@ impl TryFrom<String> for UserUrl {
             return Err("Link is empty");
         }
 
-        let raw = raw_trimmed.to_string();
-
-        Ok(Self { raw: raw })
+        Ok(Self {
+            raw: raw_trimmed.to_string(),
+        })
     }
 }
 
@@ -147,9 +158,7 @@ pub struct CreatedAt(DateTime<Utc>);
 
 impl CreatedAt {
     pub fn value() -> DateTime<Utc> {
-        let created_at = Utc::now();
-
-        return created_at;
+        Utc::now()
     }
 }
 
@@ -158,6 +167,7 @@ impl From<DateTime<Utc>> for CreatedAt {
         CreatedAt(value)
     }
 }
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Link {
     id: LinkId,
@@ -180,6 +190,7 @@ impl Link {
         let generated_url = ShortUrl::try_from(short_url)?;
         let input_url = UserUrl::try_from(user_url)?;
         let creation_time = CreatedAt::from(created_at);
+
         Ok(Self {
             id: link_id,
             code: hash_code,
