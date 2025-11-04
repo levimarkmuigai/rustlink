@@ -14,7 +14,7 @@ impl<P: LinkPersistence> LinkPersistenceService<P> {
         Self { persistence }
     }
 
-    pub fn save(&self, link: Link) -> Result<Link, LinkError> {
+    pub fn save(&self, link: Link) -> Result<LinkId, LinkError> {
         self.persistence.save(link)
     }
 
@@ -40,4 +40,3 @@ impl<Q: LinkQuery> LinkQueryService<Q> {
         self.query.find_by_short_code(short_code)
     }
 }
-

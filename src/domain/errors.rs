@@ -16,4 +16,7 @@ pub enum LinkError {
 
     #[error("Persistence error: {0}")]
     PersistenceError(String),
+
+    #[error("Link creation error")]
+    LinkCreationError,
 }

@@ -6,12 +6,6 @@ use rand::{rngs::OsRng, Rng};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-impl From<String> for LinkError {
-    fn from(_: String) -> Self {
-        LinkError::CodeGenerationFailure
-    }
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct LinkId(Uuid);
 
@@ -62,6 +56,10 @@ impl LinkHashedCode {
 
         let hashed_code_result = PasswordHash::new(&salted_hex_result).unwrap().to_string();
 
+        if salted_hex_result.is_empty() {
+            return Err(LinkError::EmptyHashedCode)?;
+        }
+
         Ok(hashed_code_result)
     }
 }
@@ -73,7 +71,7 @@ impl TryFrom<String> for LinkHashedCode {
         let value_trimmed = value.trim();
 
         if value_trimmed.is_empty() {
-            return Err("Short url is empty.");
+            return Err("Hashed code is empty");
         }
 
         Ok(Self(value_trimmed.to_string()))

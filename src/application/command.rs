@@ -4,21 +4,19 @@ pub struct Url {
 }
 
 impl Url {
-    pub fn new() -> Result<Url, String> {
-        let input: String = Default::default();
+    pub fn new(value: String) -> Result<Url, String> {
+        let value_trim = value.trim();
 
-        let input_trim = input.trim();
-
-        if input_trim.is_empty() {
+        if value_trim.is_empty() {
             return Err("Empty input".to_string());
         }
 
-        let raw = input_trim.to_string();
+        let raw = value_trim.to_string();
 
         Ok(Self { raw: raw })
     }
 
-    pub fn as_str(self) -> String {
-        self.raw
+    pub fn as_str(&self) -> &str {
+        &self.raw
     }
 }
