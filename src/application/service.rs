@@ -32,7 +32,7 @@ where
         let generated_url = ShortUrl::value()?;
         let creation_time = CreatedAt::value();
 
-        let user_url = Url::new(raw_user_url).map_err(|_| LinkError::EmptyURL)?;
+        let user_url = Url::new(&raw_user_url).map_err(|_| LinkError::EmptyURL)?;
 
         let link = Link::new(
             link_uuid,

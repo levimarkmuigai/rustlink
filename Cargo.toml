@@ -17,7 +17,7 @@ tower-http = { version = "0.5", features = [
 ] }
 
 # Database (PostgreSQL) and Compile-Time Security (A03)
-sqlx = { version = "0.7", features = [
+sqlx = { version = "0.8.6", features = [
     "runtime-tokio",
     "macros",
     "postgres",
@@ -40,3 +40,5 @@ argon2 = "0.5.3"
 sha2 = "0.10.9"
 hex = "0.4.3"
 async-trait = "0.1.89"
+url = "2.5.7"
+net = "0.0.2"
