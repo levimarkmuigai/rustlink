@@ -6,6 +6,7 @@ use rand::{rngs::OsRng, Rng};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
+// OWASP A01 Broken Access Control
 #[derive(Debug, Clone, PartialEq)]
 pub struct LinkId(Uuid);
 
@@ -18,6 +19,7 @@ impl LinkId {
         let raw_string = raw.to_string();
         let raw_string_trimmed = raw_string.trim();
 
+        // OWASP A08 Data Integrity Failure
         if raw_string_trimmed.is_empty() {
             return Err(LinkError::LinkIdNotFound);
         }
@@ -39,13 +41,14 @@ pub struct LinkHashedCode(String);
 impl LinkHashedCode {
     pub fn value() -> Result<String, LinkError> {
         let mut rng = OsRng;
-        let value: u64 = rng.gen();
+        let value: u64 = rng.gen(); // OWASP A07 Authentication Failure
         let mut sha256 = Sha256::new();
 
         sha256.update(value.to_string().as_bytes());
         let result = sha256.finalize();
         let hexed_result = hex::encode(result);
 
+        // OWASP A02 Cryptographic Failure
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
 
@@ -56,6 +59,7 @@ impl LinkHashedCode {
 
         let hashed_code_result = PasswordHash::new(&salted_hex_result).unwrap().to_string();
 
+        // OWASP 08 Data Integrity Faliure
         if salted_hex_result.is_empty() {
             return Err(LinkError::EmptyHashedCode)?;
         }

@@ -58,6 +58,17 @@ where
 
         let link_id = link.id();
 
+        let delete_hash_key = link.delete_hash_code();
+
+        let stored_key = self
+            .query_service
+            .find_hashed_code(link_id.clone())
+            .map_err(|e| LinkError::PersistenceError(e.to_string()))?;
+
+        if delete_hash_key != &stored_key {
+            return Err(LinkError::HashedCodeMismatch);
+        }
+
         self.persistence_service
             .delete_by_id(link_id.clone())
             .map_err(|e| LinkError::PersistenceError(e.to_string()))?;

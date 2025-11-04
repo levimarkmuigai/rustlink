@@ -7,6 +7,7 @@ impl Url {
     pub fn new(value: String) -> Result<Url, String> {
         let value_trim = value.trim();
 
+        // OWASP 08 Data integrity faliure
         if value_trim.is_empty() {
             return Err("Empty input".to_string());
         }

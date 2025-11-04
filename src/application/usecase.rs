@@ -1,6 +1,6 @@
 use crate::domain::{
     errors::LinkError,
-    link::{Link, LinkId},
+    link::{Link, LinkHashedCode, LinkId},
     ports::{LinkPersistence, LinkQuery},
 };
 
@@ -23,6 +23,7 @@ impl<P: LinkPersistence> LinkPersistenceService<P> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct LinkQueryService<Q: LinkQuery> {
     query: Q,
 }
@@ -38,5 +39,9 @@ impl<Q: LinkQuery> LinkQueryService<Q> {
 
     pub fn find_by_short_code(&self, short_code: &str) -> Result<Link, LinkError> {
         self.query.find_by_short_code(short_code)
+    }
+
+    pub fn find_hashed_code(&self, id: LinkId) -> Result<LinkHashedCode, LinkError> {
+        self.query.find_hashed_code(id)
     }
 }

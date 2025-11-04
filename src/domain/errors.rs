@@ -19,4 +19,7 @@ pub enum LinkError {
 
     #[error("Link creation error")]
     LinkCreationError,
+
+    #[error("Hashed code mismatch")]
+    HashedCodeMismatch,
 }
