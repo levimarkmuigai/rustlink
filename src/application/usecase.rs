@@ -37,10 +37,6 @@ impl<Q: LinkQuery + Send + Sync> LinkQueryService<Q> {
         self.query.find_by_id(id).await
     }
 
-    pub async fn find_by_short_code(&self, short_code: &str) -> Result<Link, LinkError> {
-        self.query.find_by_short_code(short_code).await
-    }
-
     pub async fn find_hashed_code(&self, id: LinkId) -> Result<LinkHashedCode, LinkError> {
         self.query.find_hashed_code(id).await
     }
