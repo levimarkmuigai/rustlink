@@ -43,6 +43,9 @@ impl From<Uuid> for LinkId {
 pub struct LinkHashedCode(String);
 
 impl LinkHashedCode {
+    pub fn new(value: String) -> Self {
+        Self(value)
+    }
     pub fn value() -> Result<String, LinkError> {
         let mut rng = OsRng;
         let value: u64 = rng.gen(); // OWASP A07 Authentication Failure

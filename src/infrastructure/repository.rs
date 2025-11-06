@@ -1,7 +1,7 @@
 use crate::domain::{
     errors::LinkError,
-    link::{Link, LinkId},
-    ports::LinkPersistence,
+    link::{Link, LinkHashedCode, LinkId},
+    ports::{LinkPersistence, LinkQuery},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -16,6 +16,19 @@ impl PostgresLinkRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
+}
+
+fn to_offset_dt(dt: DateTime<Utc>) -> Result<OffsetDateTime, LinkError> {
+    let timestamp = dt.timestamp();
+    OffsetDateTime::from_unix_timestamp(timestamp)
+        .map_err(|_| LinkError::PersistenceError("Invalid timestamp conversion".into()))
+}
+
+fn to_chrono_dt(offset_dt: OffsetDateTime) -> Result<DateTime<Utc>, LinkError> {
+    let timestamp = offset_dt.unix_timestamp();
+    let chrono_dt = DateTime::from_timestamp(timestamp, 0)
+        .ok_or_else(|| LinkError::PersistenceError("Invalid timestamp".into()))?;
+    Ok(chrono_dt)
 }
 
 #[async_trait]
@@ -35,10 +48,7 @@ impl LinkPersistence for PostgresLinkRepository {
 
         match result {
             Some(record) => {
-                let created_at_utc =
-                    DateTime::<Utc>::from_timestamp(record.created_at.unix_timestamp(), 0)
-                        .ok_or_else(|| LinkError::PersistenceError("Invalid timestamp".into()))?;
-
+                let created_at_utc = to_chrono_dt(record.created_at)?;
                 let link = Link::new(
                     record.id,
                     record.delete_key_hash,
@@ -58,12 +68,7 @@ impl LinkPersistence for PostgresLinkRepository {
         let delete_key_hash = link.delete_hash_code().clone().into_inner();
         let short_code = link.short_url().clone().into_inner();
         let long_url = link.user_url().clone().into_inner();
-        let created_at_chrono = link.clone().created_at().into_inner();
-
-        // Convert chrono::DateTime<Utc> -> time::OffsetDateTime
-        let created_at: OffsetDateTime =
-            OffsetDateTime::from_unix_timestamp(created_at_chrono.timestamp())
-                .map_err(|_| LinkError::PersistenceError("Invalid timestamp conversion".into()))?;
+        let created_at = to_offset_dt(link.created_at().into_inner())?;
 
         sqlx::query!(
             r#"
@@ -81,5 +86,76 @@ impl LinkPersistence for PostgresLinkRepository {
         .map_err(|e| LinkError::PersistenceError(e.to_string()))?;
 
         Ok(LinkId::from(id))
+    }
+}
+
+#[async_trait]
+impl LinkQuery for PostgresLinkRepository {
+    async fn find_by_id(&self, id: LinkId) -> Result<Link, LinkError> {
+        sqlx::query!(
+            r#"
+        SELECT id, delete_key_hash, short_code, long_url, created_at
+        FROM links
+        WHERE id = $1
+        "#,
+            id.into_inner()
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| LinkError::PersistenceError(e.to_string()))?
+        .ok_or(LinkError::LinkIdNotFound)
+        .and_then(|row| {
+            let created_at_utc = to_chrono_dt(row.created_at)?;
+            Link::new(
+                row.id,
+                row.delete_key_hash,
+                row.short_code,
+                row.long_url,
+                created_at_utc,
+            )
+            .map_err(|_| LinkError::LinkCreationError)
+        })
+    }
+
+    async fn find_by_short_code(&self, short_code: &str) -> Result<Link, LinkError> {
+        sqlx::query!(
+            r#"
+        SELECT id, delete_key_hash, short_code, long_url, created_at
+        FROM links
+        WHERE short_code = $1
+        "#,
+            short_code
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| LinkError::PersistenceError(e.to_string()))?
+        .ok_or(LinkError::LinkIdNotFound)
+        .and_then(|row| {
+            let created_at_utc = to_chrono_dt(row.created_at)?;
+            Link::new(
+                row.id,
+                row.delete_key_hash,
+                row.short_code,
+                row.long_url,
+                created_at_utc,
+            )
+            .map_err(|_| LinkError::LinkCreationError)
+        })
+    }
+
+    async fn find_hashed_code(&self, id: LinkId) -> Result<LinkHashedCode, LinkError> {
+        sqlx::query!(
+            r#"
+        SELECT delete_key_hash
+        FROM links
+        WHERE id = $1
+        "#,
+            id.into_inner()
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| LinkError::PersistenceError(e.to_string()))?
+        .ok_or(LinkError::LinkIdNotFound)
+        .map(|row| LinkHashedCode::new(row.delete_key_hash))
     }
 }
