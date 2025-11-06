@@ -19,14 +19,14 @@ where
     P: LinkPersistence + Send + Sync,
     Q: LinkQuery + Send + Sync,
 {
-    pub fn new(persistence: LinkPersistenceService<P>, query: LinkQueryService<Q>) -> Self {
+    pub async fn new(persistence: LinkPersistenceService<P>, query: LinkQueryService<Q>) -> Self {
         Self {
             persistence_service: persistence,
             query_service: query,
         }
     }
 
-    pub fn create(&self, raw_user_url: String) -> Result<LinkId, LinkError> {
+    pub async fn create(&self, raw_user_url: String) -> Result<LinkId, LinkError> {
         let link_uuid = LinkId::value();
         let delete_key = LinkHashedCode::value()?;
         let generated_url = ShortUrl::value()?;
@@ -45,15 +45,17 @@ where
 
         self.persistence_service
             .save(link)
+            .await
             .map_err(|e| LinkError::PersistenceError(e.to_string()))?;
 
         Ok(LinkId::from(link_uuid))
     }
 
-    pub fn delete(&self, id: LinkId) -> Result<Option<Link>, LinkError> {
+    pub async fn delete(&self, id: LinkId) -> Result<Option<Link>, LinkError> {
         let link = self
             .query_service
             .find_by_id(id)
+            .await
             .map_err(|e| LinkError::PersistenceError(e.to_string()))?;
 
         let link_id = link.id();
@@ -63,6 +65,7 @@ where
         let stored_key = self
             .query_service
             .find_hashed_code(link_id.clone())
+            .await
             .map_err(|e| LinkError::PersistenceError(e.to_string()))?;
 
         if delete_hash_key != &stored_key {
@@ -71,6 +74,7 @@ where
 
         self.persistence_service
             .delete_by_id(link_id.clone())
+            .await
             .map_err(|e| LinkError::PersistenceError(e.to_string()))?;
 
         Ok(Some(link))

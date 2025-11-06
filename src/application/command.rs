@@ -1,5 +1,4 @@
 use std::net::{IpAddr, ToSocketAddrs};
-use std::str::FromStr;
 use url::Url as ExternalUrl;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -19,7 +18,9 @@ impl Url {
         let parsed =
             ExternalUrl::parse(value_trim).map_err(|_| "Invalid URL format".to_string())?;
 
-        let domain = parsed.host_str();
+        let domain = parsed
+            .host_str()
+            .ok_or_else(|| "Missing domain in URL".to_string())?;
 
         // OWASP 10 Server Side Request  Forgery
         let socket_addrs = (domain, 25)

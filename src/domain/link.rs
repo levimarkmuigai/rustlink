@@ -26,6 +26,10 @@ impl LinkId {
 
         Ok(raw_string_trimmed.to_string())
     }
+
+    pub fn into_inner(self) -> Uuid {
+        self.0
+    }
 }
 
 impl From<Uuid> for LinkId {
@@ -65,6 +69,10 @@ impl LinkHashedCode {
         }
 
         Ok(hashed_code_result)
+    }
+
+    pub fn into_inner(self) -> String {
+        self.0
     }
 }
 
@@ -137,6 +145,10 @@ impl UserUrl {
     pub fn value(&self) -> &String {
         &self.raw
     }
+
+    pub fn into_inner(self) -> String {
+        self.raw
+    }
 }
 
 impl TryFrom<String> for UserUrl {
@@ -161,6 +173,10 @@ pub struct CreatedAt(DateTime<Utc>);
 impl CreatedAt {
     pub fn value() -> DateTime<Utc> {
         Utc::now()
+    }
+
+    pub fn into_inner(self) -> DateTime<Utc> {
+        self.0
     }
 }
 
