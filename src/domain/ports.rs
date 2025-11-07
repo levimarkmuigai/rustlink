@@ -1,6 +1,6 @@
 use crate::domain::{
     errors::LinkError,
-    link::{Link, LinkHashedCode, LinkId},
+    link::{Link, LinkId, LinkKey, ShortUrl},
 };
 
 use async_trait::async_trait;
@@ -14,5 +14,6 @@ pub trait LinkPersistence: Send + Sync {
 #[async_trait]
 pub trait LinkQuery: Send + Sync {
     async fn find_by_id(&self, id: LinkId) -> Result<Link, LinkError>;
-    async fn find_hashed_code(&self, id: LinkId) -> Result<LinkHashedCode, LinkError>;
+    async fn find_delete_key(&self, id: LinkId) -> Result<LinkKey, LinkError>;
+    async fn find_by_short_code(&self, short_code: ShortUrl) -> Result<Link, LinkError>;
 }

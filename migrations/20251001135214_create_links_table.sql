@@ -6,5 +6,5 @@ CREATE TABLE links (
     short_code VARCHAR(10) NOT NULL UNIQUE,
     long_url TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    delete_key_hash TEXT NOT NULL
+    delete_key TEXT NOT NULL
 );

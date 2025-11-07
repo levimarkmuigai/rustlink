@@ -14,6 +14,9 @@ pub enum LinkError {
     #[error("User url is empty")]
     EmptyURL,
 
+    #[error("Invalid Url")]
+    InvalidUrl,
+
     #[error("Persistence error: {0}")]
     PersistenceError(String),
 
@@ -22,4 +25,10 @@ pub enum LinkError {
 
     #[error("Hashed code mismatch")]
     HashedCodeMismatch,
+
+    #[error("Not found")]
+    NotFound,
+
+    #[error("Invalid format")]
+    InvalidFormat,
 }

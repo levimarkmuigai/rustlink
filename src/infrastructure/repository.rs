@@ -6,10 +6,11 @@ use async_trait::async_trait;
 
 use crate::domain::{
     errors::LinkError,
-    link::{Link, LinkHashedCode, LinkId},
+    link::{Link, LinkId, LinkKey, ShortUrl},
     ports::{LinkPersistence, LinkQuery},
 };
 
+#[derive(Clone, Debug)]
 pub struct PgPoolRepository {
     pool: PgPool,
 }
@@ -40,18 +41,18 @@ fn to_chrono_dt(offset_dt: OffsetDateTime) -> Result<DateTime<Utc>, LinkError> {
 impl LinkPersistence for PgPoolRepository {
     async fn save(&self, link: Link) -> Result<LinkId, LinkError> {
         let id = link.id().clone().into_inner();
-        let delete_hash_code = link.delete_hash_code().clone().into_inner();
+        let delete_key = link.delete_hash_code().clone().into_inner();
         let short_code = link.short_url().clone().into_inner();
         let long_url = link.user_url().clone().into_inner();
         let created_at = to_offset_dt(link.created_at().into_inner())?;
 
         sqlx::query!(
             r#"
-            INSERT INTO links (id, delete_key_hash, short_code, long_url, created_at)
+            INSERT INTO links (id, delete_key, short_code, long_url, created_at)
             VALUES ($1,$2, $3, $4, $5)
             "#,
             id,
-            delete_hash_code,
+            delete_key,
             short_code,
             long_url,
             created_at
@@ -68,7 +69,7 @@ impl LinkPersistence for PgPoolRepository {
             r#"
             DELETE FROM links
             WHERE id = $1
-            RETURNING id, delete_key_hash, short_code, long_url, created_at
+            RETURNING id, delete_key, short_code, long_url, created_at
             "#,
             id.into_inner()
         )
@@ -82,7 +83,7 @@ impl LinkPersistence for PgPoolRepository {
 
                 let link = Link::new(
                     record.id,
-                    record.delete_key_hash,
+                    record.delete_key,
                     record.short_code,
                     record.long_url,
                     created_at_utc,
@@ -100,7 +101,7 @@ impl LinkQuery for PgPoolRepository {
     async fn find_by_id(&self, id: LinkId) -> Result<Link, LinkError> {
         sqlx::query!(
             r#"
-            SELECT id, delete_key_hash, short_code, long_url, created_at
+            SELECT id, delete_key, short_code, long_url, created_at
             FROM links
             WHERE id = $1
             "#,
@@ -115,7 +116,7 @@ impl LinkQuery for PgPoolRepository {
 
             Link::new(
                 row.id,
-                row.delete_key_hash,
+                row.delete_key,
                 row.short_code,
                 row.long_url,
                 created_at_utc,
@@ -124,10 +125,10 @@ impl LinkQuery for PgPoolRepository {
         })
     }
 
-    async fn find_hashed_code(&self, id: LinkId) -> Result<LinkHashedCode, LinkError> {
+    async fn find_delete_key(&self, id: LinkId) -> Result<LinkKey, LinkError> {
         sqlx::query!(
             r#"
-            SELECT delete_key_hash
+            SELECT delete_key
             FROM links
             WHERE id = $1 
             "#,
@@ -137,6 +138,33 @@ impl LinkQuery for PgPoolRepository {
         .await
         .map_err(|e| LinkError::PersistenceError(e.to_string()))?
         .ok_or(LinkError::LinkIdNotFound)
-        .map(|row| LinkHashedCode::new(row.delete_key_hash))
+        .map(|row| LinkKey::new(row.delete_key))
+    }
+
+    async fn find_by_short_code(&self, code: ShortUrl) -> Result<Link, LinkError> {
+        sqlx::query!(
+            r#"
+            SELECT id,delete_key,short_code,long_url,created_at
+            FROM links
+            WHERE short_code = $1
+            "#,
+            code.into_inner()
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| LinkError::PersistenceError(e.to_string()))?
+        .ok_or(LinkError::LinkIdNotFound)
+        .and_then(|row| {
+            let created_at_utc = to_chrono_dt(row.created_at)?;
+
+            Link::new(
+                row.id,
+                row.delete_key,
+                row.short_code,
+                row.long_url,
+                created_at_utc,
+            )
+            .map_err(|_| LinkError::LinkCreationError)
+        })
     }
 }

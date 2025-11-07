@@ -4,7 +4,7 @@ use crate::application::{
 };
 use crate::domain::{
     errors::LinkError,
-    link::{CreatedAt, Link, LinkHashedCode, LinkId, ShortUrl},
+    link::{CreatedAt, Link, LinkId, LinkKey, ShortUrl},
     ports::{LinkPersistence, LinkQuery},
 };
 
@@ -27,8 +27,8 @@ where
     }
 
     pub async fn create(&self, raw_user_url: String) -> Result<LinkId, LinkError> {
-        let link_uuid = LinkId::value();
-        let delete_key = LinkHashedCode::value()?;
+        let link_uuid = LinkId::generate();
+        let delete_key = LinkKey::generate()?;
         let generated_url = ShortUrl::value()?;
         let creation_time = CreatedAt::value();
 
@@ -36,7 +36,7 @@ where
 
         let link = Link::new(
             link_uuid,
-            delete_key.clone(),
+            delete_key.clone().into_inner(),
             generated_url.clone().into_inner(),
             user_url.as_str().to_string(),
             creation_time,
@@ -64,7 +64,7 @@ where
 
         let stored_key = self
             .query_service
-            .find_hashed_code(link_id.clone())
+            .find_delete_key(link_id.clone())
             .await
             .map_err(|e| LinkError::PersistenceError(e.to_string()))?;
 
@@ -78,5 +78,15 @@ where
             .map_err(|e| LinkError::PersistenceError(e.to_string()))?;
 
         Ok(Some(link))
+    }
+
+    pub async fn redirect(&self, code: ShortUrl) -> Result<Link, LinkError> {
+        let link = self
+            .query_service
+            .find_by_short_code(code)
+            .await
+            .map_err(|e| LinkError::PersistenceError(e.to_string()))?;
+
+        Ok(link)
     }
 }

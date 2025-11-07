@@ -1,7 +1,7 @@
 use crate::domain::errors::LinkError;
-use argon2::password_hash::{PasswordHash, SaltString};
-use argon2::{Argon2, PasswordHasher};
 use chrono::{DateTime, Utc};
+use hex;
+use rand::RngCore;
 use rand::{rngs::OsRng, Rng};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
@@ -11,20 +11,14 @@ use uuid::Uuid;
 pub struct LinkId(Uuid);
 
 impl LinkId {
-    pub fn value() -> Uuid {
+    pub fn generate() -> Uuid {
         Uuid::new_v4()
     }
 
-    pub fn from_string(raw: Uuid) -> Result<String, LinkError> {
-        let raw_string = raw.to_string();
-        let raw_string_trimmed = raw_string.trim();
+    pub fn from_string(raw: String) -> Result<LinkId, LinkError> {
+        let uuid = Uuid::parse_str(&raw).map_err(|_| LinkError::InvalidFormat)?;
 
-        // OWASP A08 Data Integrity Failure
-        if raw_string_trimmed.is_empty() {
-            return Err(LinkError::LinkIdNotFound);
-        }
-
-        Ok(raw_string_trimmed.to_string())
+        Ok(LinkId(uuid))
     }
 
     pub fn into_inner(self) -> Uuid {
@@ -40,38 +34,34 @@ impl From<Uuid> for LinkId {
 
 // OWASP A01
 #[derive(Debug, Clone, PartialEq)]
-pub struct LinkHashedCode(String);
+pub struct LinkKey(String);
 
-impl LinkHashedCode {
+impl LinkKey {
+    pub fn generate() -> Result<Self, LinkError> {
+        let mut random_bytes = [0u8; 16];
+        OsRng.fill_bytes(&mut random_bytes);
+
+        let mut hasher = Sha256::new();
+        hasher.update(random_bytes);
+        let hash_result = hasher.finalize();
+
+        let full_hex = hex::encode(hash_result);
+
+        let short_code = full_hex[0..8].to_string();
+
+        if short_code.is_empty() {
+            return Err(LinkError::EmptyHashedCode);
+        }
+
+        Ok(Self(short_code))
+    }
+
     pub fn new(value: String) -> Self {
         Self(value)
     }
-    pub fn value() -> Result<String, LinkError> {
-        let mut rng = OsRng;
-        let value: u64 = rng.gen(); // OWASP A07 Authentication Failure
-        let mut sha256 = Sha256::new();
 
-        sha256.update(value.to_string().as_bytes());
-        let result = sha256.finalize();
-        let hexed_result = hex::encode(result);
-
-        // OWASP A02 Cryptographic Failure
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-
-        let salted_hex_result = argon2
-            .hash_password(hexed_result.as_bytes(), &salt)
-            .unwrap()
-            .to_string();
-
-        let hashed_code_result = PasswordHash::new(&salted_hex_result).unwrap().to_string();
-
-        // OWASP 08 Data Integrity Faliure
-        if salted_hex_result.is_empty() {
-            return Err(LinkError::EmptyHashedCode)?;
-        }
-
-        Ok(hashed_code_result)
+    pub fn value(&self) -> &str {
+        &self.0
     }
 
     pub fn into_inner(self) -> String {
@@ -79,7 +69,7 @@ impl LinkHashedCode {
     }
 }
 
-impl TryFrom<String> for LinkHashedCode {
+impl TryFrom<String> for LinkKey {
     type Error = &'static str;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -145,12 +135,19 @@ pub struct UserUrl {
 }
 
 impl UserUrl {
+    pub fn new(raw: String) -> Self {
+        Self { raw }
+    }
     pub fn value(&self) -> &String {
         &self.raw
     }
 
     pub fn into_inner(self) -> String {
         self.raw
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.raw
     }
 }
 
@@ -192,7 +189,7 @@ impl From<DateTime<Utc>> for CreatedAt {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Link {
     id: LinkId,
-    code: LinkHashedCode,
+    code: LinkKey,
     short_url: ShortUrl,
     user_url: UserUrl,
     created_at: CreatedAt,
@@ -207,7 +204,7 @@ impl Link {
         created_at: DateTime<Utc>,
     ) -> Result<Link, String> {
         let link_id = LinkId::from(id);
-        let hash_code = LinkHashedCode::try_from(code)?;
+        let hash_code = LinkKey::try_from(code)?;
         let generated_url = ShortUrl::try_from(short_url)?;
         let input_url = UserUrl::try_from(user_url)?;
         let creation_time = CreatedAt::from(created_at);
@@ -225,7 +222,7 @@ impl Link {
         &self.id
     }
 
-    pub fn delete_hash_code(&self) -> &LinkHashedCode {
+    pub fn delete_hash_code(&self) -> &LinkKey {
         &self.code
     }
 

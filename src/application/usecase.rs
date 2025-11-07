@@ -1,6 +1,6 @@
 use crate::domain::{
     errors::LinkError,
-    link::{Link, LinkHashedCode, LinkId},
+    link::{Link, LinkId, LinkKey, ShortUrl},
     ports::{LinkPersistence, LinkQuery},
 };
 
@@ -37,7 +37,11 @@ impl<Q: LinkQuery + Send + Sync> LinkQueryService<Q> {
         self.query.find_by_id(id).await
     }
 
-    pub async fn find_hashed_code(&self, id: LinkId) -> Result<LinkHashedCode, LinkError> {
-        self.query.find_hashed_code(id).await
+    pub async fn find_delete_key(&self, id: LinkId) -> Result<LinkKey, LinkError> {
+        self.query.find_delete_key(id).await
+    }
+
+    pub async fn find_by_short_code(&self, short_code: ShortUrl) -> Result<Link, LinkError> {
+        self.query.find_by_short_code(short_code).await
     }
 }
